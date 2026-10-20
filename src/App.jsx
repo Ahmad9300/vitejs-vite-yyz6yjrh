@@ -1,1083 +1,776 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import {
-  Wallet,
-  TrendingUp,
-  TrendingDown,
-  Users,
-  ShieldCheck,
-  Wifi,
-  WifiOff,
-  Plus,
-  RefreshCw,
-  CheckCircle2,
-  Clock,
-  ArrowUpRight,
-  ArrowDownLeft,
-  SlidersHorizontal,
-  Lock,
-  Copy,
-  Radio,
-  Trash2,
-  AlertTriangle,
-  KeyRound,
-  Sparkles,
-  ShoppingCart,
-  ShoppingBag,
-  Square,
-  CheckSquare,
-  Edit3,
-  X,
-  FileDown,
-  Calendar,
-  BarChart3,
-  PieChart,
-  Download,
-  Filter,
-  UserX
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 
-const USERS = [
-  { id: 'user_1', name: 'أحمد (رب الأسرة)', email: 'ahmad@family.jo', role: 'ADMIN', avatar: '👨‍💼' },
-  { id: 'user_2', name: 'فاطمة (الأم)', email: 'fatima@family.jo', role: 'MEMBER', avatar: '👩‍💼' },
-  { id: 'user_3', name: 'عمر (الابن الجامعي)', email: 'omar@family.jo', role: 'MEMBER', avatar: '👨‍🎓' },
-  { id: 'user_4', name: 'سارة (الابنة)', email: 'sara@family.jo', role: 'MEMBER', avatar: '👩‍🎓' }
-];
-
-const INITIAL_WALLETS = [
-  {
-    id: 'wallet_main',
-    name: 'مصاريف المنزل الرئيسية',
-    currency: 'JOD',
-    createdBy: 'user_1',
-    members: [
-      { userId: 'user_1', role: 'ADMIN', permissions: { canViewBalance: true, canViewInflows: true, canViewOthersTx: true, canAddTx: true } },
-      { userId: 'user_2', role: 'MEMBER', permissions: { canViewBalance: true, canViewInflows: true, canViewOthersTx: true, canAddTx: true } },
-      { userId: 'user_3', role: 'MEMBER', permissions: { canViewBalance: false, canViewInflows: false, canViewOthersTx: false, canAddTx: true } },
-      { userId: 'user_4', role: 'MEMBER', permissions: { canViewBalance: true, canViewInflows: false, canViewOthersTx: false, canAddTx: false } }
-    ]
-  },
-  {
-    id: 'wallet_savings',
-    name: 'صندوق الطوارئ والتوفير',
-    currency: 'JOD',
-    createdBy: 'user_1',
-    members: [
-      { userId: 'user_1', role: 'ADMIN', permissions: { canViewBalance: true, canViewInflows: true, canViewOthersTx: true, canAddTx: true } },
-      { userId: 'user_2', role: 'ADMIN', permissions: { canViewBalance: true, canViewInflows: true, canViewOthersTx: true, canAddTx: true } }
-    ]
-  },
-  {
-    id: 'wallet_work',
-    name: 'العمل',
-    currency: 'JOD',
-    createdBy: 'user_1',
-    members: [
-      { userId: 'user_1', role: 'ADMIN', permissions: { canViewBalance: true, canViewInflows: true, canViewOthersTx: true, canAddTx: true } },
-      { userId: 'user_2', role: 'MEMBER', permissions: { canViewBalance: true, canViewInflows: true, canViewOthersTx: true, canAddTx: true } }
-    ]
-  }
-];
-
-const INITIAL_TRANSACTIONS = [
-  { id: 'tx_1', walletId: 'wallet_main', amount: 150000, category: 'راتب ودخل شهري', description: 'تحويل الراتب الشهري للحساب المنزلي', createdBy: 'user_1', date: '2026-10-01T08:30:00.000Z', syncStatus: 'SYNCED' },
-  { id: 'tx_2', walletId: 'wallet_main', amount: -8550, category: 'بقالة ومواد تموينية', description: 'تسوق لحوم ومواد غذائية من كارفور', createdBy: 'user_2', date: '2026-10-04T14:15:00.000Z', syncStatus: 'SYNCED' },
-  { id: 'tx_3', walletId: 'wallet_main', amount: -4500, category: 'فواتير وكهرباء وماء', description: 'سداد فاتورة الكهرباء الشهرية (إي فواتيركم)', createdBy: 'user_1', date: '2026-10-08T11:00:00.000Z', syncStatus: 'SYNCED' },
-  { id: 'tx_4', walletId: 'wallet_main', amount: -2500, category: 'مواصلات ومحروقات', description: 'بنزين أوكتان 90 سيارة العائلة', createdBy: 'user_3', date: '2026-10-12T16:40:00.000Z', syncStatus: 'SYNCED' },
-  { id: 'tx_sav_1', walletId: 'wallet_savings', amount: 25000, category: 'إيداع وتوفير شهري', description: 'استقطاع التوفير والادخار الشهري', createdBy: 'user_1', date: '2026-10-02T09:00:00.000Z', syncStatus: 'SYNCED' },
-  { id: 'tx_sav_2', walletId: 'wallet_savings', amount: -7500, category: 'سحب طارئ', description: 'سحب طارئ لإصلاح عطل مفاجئ بالمنزل', createdBy: 'user_1', date: '2026-10-09T18:20:00.000Z', syncStatus: 'SYNCED' },
-  { id: 'tx_work_1', walletId: 'wallet_work', amount: 120000, category: 'عائد مشروع واستشارات', description: 'دفعة مستحقات مشروع واستشارات برمجية', createdBy: 'user_1', date: '2026-10-05T12:00:00.000Z', syncStatus: 'SYNCED' },
-  { id: 'tx_work_2', walletId: 'wallet_work', amount: -35000, category: 'مصاريف ونفقات عامة', description: 'شراء معدات ومستلزمات مكتبية للعمل', createdBy: 'user_1', date: '2026-10-11T15:30:00.000Z', syncStatus: 'SYNCED' }
-];
-
-const INITIAL_SHOPPING_ITEMS = [
-  { id: 'shop_1', walletId: 'wallet_main', title: 'حليب طازج 2 لتر ولبن بلدي', category: 'ألبان وأجبان', quantity: '2 لتر + 1 كغم', actualPrice: null, status: 'PENDING', addedBy: 'user_2', assignedTo: 'user_1', notes: 'تأكد من تاريخ الإنتاج جديد', updatedAt: '2026-10-15T09:00:00.000Z' },
-  { id: 'shop_2', walletId: 'wallet_main', title: 'خبز طازج وجبنة بيضاء نابلسية', category: 'مخبوزات ومعجنات', quantity: '1 كغم جبنة + ربطة خبز', actualPrice: null, status: 'PENDING', addedBy: 'user_2', assignedTo: 'user_1', notes: 'من مخبز البركة القريب', updatedAt: '2026-10-15T10:00:00.000Z' },
-  { id: 'shop_3', walletId: 'wallet_main', title: 'مسحوق غسيل ومناديل مطبخ', category: 'منظفات ومستلزمات منزلية', quantity: 'عبوة عائلية', actualPrice: null, status: 'PENDING', addedBy: 'user_2', assignedTo: 'user_1', notes: 'عبوة توفير للمطبخ', updatedAt: '2026-10-15T11:30:00.000Z' }
-];
-
-const SHOPPING_CATEGORIES = {
-  'ألبان وأجبان': { name: 'ألبان وأجبان', icon: '🥛', color: 'bg-sky-500/15 text-sky-300 border-sky-500/30' },
-  'مواد تموينية وبقالة': { name: 'مواد تموينية وبقالة', icon: '🥫', color: 'bg-amber-500/15 text-amber-300 border-amber-500/30' },
-  'منظفات ومستلزمات منزلية': { name: 'منظفات ومستلزمات منزلية', icon: '🧼', color: 'bg-teal-500/15 text-teal-300 border-teal-500/30' },
-  'مخبوزات ومعجنات': { name: 'مخبوزات ومعجنات', icon: '🥖', color: 'bg-orange-500/15 text-orange-300 border-orange-500/30' },
-  'خضار وفواكه': { name: 'خضار وفواكه', icon: '🥦', color: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' },
-  'لحوم ودواجن': { name: 'لحوم ودواجن', icon: '🥩', color: 'bg-rose-500/15 text-rose-300 border-rose-500/30' },
-  'صيدلية وعناية شخصية': { name: 'صيدلية وعناية شخصية', icon: '💊', color: 'bg-purple-500/15 text-purple-300 border-purple-500/30' },
-  'أخرى ومستلزمات': { name: 'أخرى ومستلزمات', icon: '📦', color: 'bg-slate-500/15 text-slate-300 border-slate-500/30' }
+// ==========================================
+// أيقونات SVG خفيفة ومدمجة بدون أي مكتبات خارجية
+// ==========================================
+const Icons = {
+  Wallet: () => <svg className="w-5 h-5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>,
+  Dashboard: () => <svg className="w-5 h-5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>,
+  Cart: () => <svg className="w-5 h-5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>,
+  Users: () => <svg className="w-5 h-5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>,
+  Trash: () => <svg className="w-4 h-4 inline-block text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
+  Plus: () => <svg className="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>,
+  Check: () => <svg className="w-4 h-4 inline-block text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
 };
 
-const ARABIC_MONTH_NAMES = [
-  'كانون الثاني (يناير)', 'شباط (فبراير)', 'آذار (مارس)', 'نيسان (أبريل)',
-  'أيار (مايو)', 'حزيران (يونيو)', 'تموز (يوليو)', 'آب (أغسطس)',
-  'أيلول (سبتمبر)', 'تشرين الأول (أكتوبر)', 'تشرين الثاني (نوفمبر)', 'كانون الأول (ديسمبر)'
-];
+export default function FamilyBudgetApp() {
+  // ==========================================
+  // استرجاع البيانات المحفوظة في الهاتف تلقائياً
+  // ==========================================
+  const [wallets, setWallets] = useState(() => {
+    const saved = localStorage.getItem('fb_wallets');
+    return saved ? JSON.parse(saved) : [
+      {
+        id: 'w-main',
+        name: 'مصاريف المنزل الرئيسية',
+        members: [
+          { id: 'u1', name: 'أحمد', role: 'admin', title: 'رب الأسرة' },
+          { id: 'u2', name: 'الزوجة', role: 'member', title: 'شريكة الحياة' }
+        ]
+      },
+      {
+        id: 'w-savings',
+        name: 'صندوق الطوارئ والتوفير',
+        members: [
+          { id: 'u1', name: 'أحمد', role: 'admin', title: 'رب الأسرة' }
+        ]
+      }
+    ];
+  });
 
-// دالة حماية التقارير من شفرات الحقن الخبيث (XSS Protection)
-const escapeHtml = (unsafe) => {
-  if (unsafe === null || unsafe === undefined) return '';
-  return String(unsafe).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-};
+  const [activeWalletId, setActiveWalletId] = useState(() => {
+    return localStorage.getItem('fb_active_wallet') || 'w-main';
+  });
 
-// دالة فحص وتدقيق المبالغ المالية (1 دينار = 100 قرش ومنع الأرقام السالبة أو الوهمية)
-const sanitizeQirshAmount = (val, maxDinars = 100000) => {
-  const parsed = parseFloat(val);
-  if (isNaN(parsed) || !isFinite(parsed) || parsed <= 0) return null;
-  if (parsed > maxDinars) return null;
-  return Math.round(parsed * 100);
-};
+  const [currentUser, setCurrentUser] = useState(() => {
+    return localStorage.getItem('fb_current_user') || 'u1';
+  });
 
-const formatJOD = (qirsh) => {
-  if (qirsh === null || qirsh === undefined) return '0.00 د.أ';
-  const dinars = qirsh / 100;
-  return `${dinars.toLocaleString('ar-JO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} د.أ`;
-};
+  const [transactions, setTransactions] = useState(() => {
+    const saved = localStorage.getItem('fb_transactions');
+    return saved ? JSON.parse(saved) : [
+      {
+        id: 't-1',
+        walletId: 'w-main',
+        title: 'راتب شهري أساسي',
+        amount: 600.0,
+        type: 'income',
+        category: 'راتب',
+        date: '2026-10-19',
+        addedBy: 'أحمد'
+      },
+      {
+        id: 't-2',
+        walletId: 'w-main',
+        title: 'مواد تموينية وبقالة',
+        amount: 45.5,
+        type: 'expense',
+        category: 'بقالة',
+        date: '2026-10-19',
+        addedBy: 'الزوجة'
+      }
+    ];
+  });
 
-const formatDate = (dateStr) => {
-  try {
-    return new Date(dateStr).toLocaleDateString('ar-JO', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  } catch { return dateStr; }
-};
+  const [shoppingItems, setShoppingItems] = useState(() => {
+    const saved = localStorage.getItem('fb_shopping');
+    return saved ? JSON.parse(saved) : [
+      { id: 's-1', walletId: 'w-main', name: 'زيت زيتون 4 لتر', estimatedCost: 28.0, actualCost: 0, status: 'pending' },
+      { id: 's-2', walletId: 'w-main', name: 'حليب أطفال بودرة', estimatedCost: 9.5, actualCost: 9.5, status: 'bought' }
+    ];
+  });
 
-const formatShortDate = (dateStr) => {
-  try {
-    return new Date(dateStr).toLocaleDateString('ar-JO', { year: 'numeric', month: 'short', day: 'numeric' });
-  } catch { return dateStr; }
-};
+  const [currentTab, setCurrentTab] = useState('dashboard'); // dashboard | shopping | wallets
 
-const generateSecureInviteCode = () => {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let res = 'FB-';
-  for (let s = 0; s < 3; s++) {
-    for (let i = 0; i < 4; i++) res += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
-    if (s < 2) res += '-';
-  }
-  return res;
-};
+  // حالات النوافذ المنبثقة
+  const [showAddTxModal, setShowAddTxModal] = useState(false);
+  const [showAddWalletModal, setShowAddWalletModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
-export default function App() {
-  const [currentUserId, setCurrentUserId] = useState('user_1');
-  const [rawWallets, setRawWallets] = useState(INITIAL_WALLETS);
-  const [activeWalletId, setActiveWalletId] = useState('wallet_main');
-  const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS);
-  const [shoppingList, setShoppingList] = useState(INITIAL_SHOPPING_ITEMS);
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [isOnline, setIsOnline] = useState(true);
-  const [shoppingTab, setShoppingTab] = useState('PENDING'); // PENDING (قبل الشراء) أو PURCHASED (تم الشراء)
-  const [selectedCategory, setSelectedCategory] = useState('ALL');
-  const [groupByCategory, setGroupByCategory] = useState(true);
-  const [savingsTxFilter, setSavingsTxFilter] = useState('MONTH');
+  // حقول الإدخال
+  const [txTitle, setTxTitle] = useState('');
+  const [txAmount, setTxAmount] = useState('');
+  const [txType, setTxType] = useState('expense');
+  const [txCategory, setTxCategory] = useState('بقالة');
 
-  // حساب الرصيد الصافي المتاح تلقائياً (Single Source of Truth)
-  const wallets = useMemo(() => {
-    return rawWallets.map((w) => {
-      const computedBalance = transactions
-        .filter((t) => t.walletId === w.id)
-        .reduce((acc, t) => acc + t.amount, 0);
-      return { ...w, currentBalance: computedBalance };
-    });
-  }, [rawWallets, transactions]);
+  const [newWalletName, setNewWalletName] = useState('');
+  const [newMemberName, setNewMemberName] = useState('');
+  const [newMemberRole, setNewMemberRole] = useState('member');
 
-  // حماية من التخمين المتكرر لرموز الانضمام (Rate Limiting)
-  const [failedRedeemAttempts, setFailedRedeemAttempts] = useState(0);
-  const [lockoutTimestamp, setLockoutTimestamp] = useState(null);
-  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [newItemName, setNewItemName] = useState('');
+  const [newItemCost, setNewItemCost] = useState('');
 
-  const currentUser = useMemo(() => USERS.find((u) => u.id === currentUserId) || USERS[0], [currentUserId]);
-  const activeWallet = useMemo(() => {
-    return (
-      wallets.find((w) => w.id === activeWalletId && w.members.some((m) => m.userId === currentUserId)) ||
-      wallets.find((w) => w.members.some((m) => m.userId === currentUserId)) ||
-      wallets[0]
-    );
-  }, [wallets, activeWalletId, currentUserId]);
-
-  const activeMembership = useMemo(() => activeWallet?.members.find((m) => m.userId === currentUserId), [activeWallet, currentUserId]);
-  const isAdmin = activeMembership?.role === 'ADMIN';
-
-  const userPerms = useMemo(() => {
-    if (isAdmin) return { canViewBalance: true, canViewInflows: true, canViewOthersTx: true, canAddTx: true };
-    return activeMembership?.permissions || { canViewBalance: true, canViewInflows: false, canViewOthersTx: true, canAddTx: true };
-  }, [isAdmin, activeMembership]);
-
-  const isEmergencyWallet = activeWallet?.id === 'wallet_savings' || activeWallet?.name === 'صندوق الطوارئ والتوفير';
-  const isHouseholdWallet = activeWallet?.id === 'wallet_main';
-
-  // نوافذ التطبيق المنبثقة
-  const [isTxModalOpen, setIsTxModalOpen] = useState(false);
-  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
-  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-  const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
-  const [isShoppingModalOpen, setIsShoppingModalOpen] = useState(false);
-  const [editingShoppingItem, setEditingShoppingItem] = useState(null);
-  const [purchasingItem, setPurchasingItem] = useState(null);
-  const [editingPriceItem, setEditingPriceItem] = useState(null);
-  const [newPriceInput, setNewPriceInput] = useState('');
-  const [memberToManage, setMemberToManage] = useState(null);
-  const [walletToDelete, setWalletToDelete] = useState(null);
-  const [toastMessage, setToastMessage] = useState(null);
-
-  const [generatedInviteCode, setGeneratedInviteCode] = useState(generateSecureInviteCode());
-  const [activeInvites, setActiveInvites] = useState({});
-  const [redeemCodeInput, setRedeemCodeInput] = useState('');
-  const [liveBroadcastEvent, setLiveBroadcastEvent] = useState(null);
-
-  const showToast = useCallback((msg, type = 'success') => {
-    setToastMessage({ msg, type });
-    setTimeout(() => setToastMessage(null), 3500);
-  }, []);
-
-  const triggerLiveBroadcast = useCallback((text) => {
-    setLiveBroadcastEvent(text);
-    setTimeout(() => setLiveBroadcastEvent(null), 4000);
-  }, []);
+  // ==========================================
+  // حفظ تلقائي في الهاتف عند كل تعديل (Persistence)
+  // ==========================================
+  useEffect(() => {
+    localStorage.setItem('fb_wallets', JSON.stringify(wallets));
+  }, [wallets]);
 
   useEffect(() => {
-    if (activeTab === 'reports' && !isAdmin) setActiveTab('dashboard');
-    if (activeTab === 'shopping_list' && !isHouseholdWallet) setActiveTab('dashboard');
-  }, [isAdmin, activeTab, isHouseholdWallet]);
+    localStorage.setItem('fb_transactions', JSON.stringify(transactions));
+  }, [transactions]);
 
-  // تسجيل حركة يدوية
-  const handleAddTransaction = (formData) => {
-    if (!userPerms.canAddTx) {
-      showToast('ليس لديك صلاحية لإضافة معاملات', 'error');
-      return;
-    }
-    const qirsh = sanitizeQirshAmount(formData.get('amount'));
-    if (!qirsh) {
-      showToast('يرجى كتابة مبلغ صحيح وموجب بالدينار', 'error');
-      return;
-    }
-    const isExpense = formData.get('type') === 'EXPENSE';
-    const category = (formData.get('category') || 'أخرى').slice(0, 50);
-    const rawDesc = formData.get('description')?.toString().trim() || '';
-    const description = (rawDesc || (isEmergencyWallet ? (isExpense ? 'سحب طارئ' : 'إيداع وتوفير') : category)).slice(0, 150);
+  useEffect(() => {
+    localStorage.setItem('fb_shopping', JSON.stringify(shoppingItems));
+  }, [shoppingItems]);
 
+  useEffect(() => {
+    localStorage.setItem('fb_active_wallet', activeWalletId);
+  }, [activeWalletId]);
+
+  useEffect(() => {
+    localStorage.setItem('fb_current_user', currentUser);
+  }, [currentUser]);
+
+  // الحسابات المالية اللحظية للمحفظة النشطة
+  const currentWallet = wallets.find(w => w.id === activeWalletId) || wallets[0];
+  const walletTransactions = transactions.filter(t => t.walletId === activeWalletId);
+  
+  const totalIncome = walletTransactions
+    .filter(t => t.type === 'income')
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const totalExpense = walletTransactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const balance = totalIncome - totalExpense;
+
+  // إضافة حركة مالية
+  const handleAddTransaction = (e) => {
+    e.preventDefault();
+    if (!txTitle || !txAmount || Number(txAmount) <= 0) return;
+
+    const userObj = currentWallet?.members.find(m => m.id === currentUser);
     const newTx = {
-      id: `tx_${Date.now()}`,
-      walletId: activeWallet.id,
-      amount: isExpense ? -qirsh : qirsh,
-      category,
-      description,
-      createdBy: currentUserId,
-      date: new Date().toISOString(),
-      syncStatus: isOnline ? 'SYNCED' : 'PENDING_INSERT'
+      id: 'tx-' + Date.now(),
+      walletId: activeWalletId,
+      title: txTitle,
+      amount: parseFloat(txAmount),
+      type: txType,
+      category: txCategory,
+      date: new Date().toISOString().split('T')[0],
+      addedBy: userObj ? userObj.name : 'مجهول'
     };
 
-    setTransactions((prev) => [newTx, ...prev]);
-    triggerLiveBroadcast(`${currentUser.name} أضاف حركة ${isExpense ? 'مصروف' : 'إيداع'} بقيمة ${formatJOD(qirsh)}`);
-    showToast('تم حفظ المعاملة وتحديث الرصيد');
-    setIsTxModalOpen(false);
+    setTransactions([newTx, ...transactions]);
+    setTxTitle('');
+    setTxAmount('');
+    setShowAddTxModal(false);
   };
 
   // حذف حركة
-  const handleDeleteTransaction = (txId) => {
-    const tx = transactions.find((t) => t.id === txId);
-    if (!tx) return;
-    if (!isAdmin && tx.createdBy !== currentUserId) {
-      showToast('غير مصرح لك بحذف معاملات الأعضاء الآخرين', 'error');
-      return;
+  const handleDeleteTx = (id) => {
+    if (window.confirm('هل تريد حذف هذه الحركة بالتأكيد؟')) {
+      setTransactions(transactions.filter(t => t.id !== id));
     }
-    setTransactions((prev) => prev.filter((t) => t.id !== txId));
-    triggerLiveBroadcast(`قام ${currentUser.name} بحذف حركة مالية`);
-    showToast('تم حذف الحركة وتحديث الرصيد');
   };
 
-  // إضافة وتعديل أغراض التسوق
-  const handleSaveShoppingItem = (formData) => {
-    const title = formData.get('title');
-    const quantity = formData.get('quantity') || '1';
-    const category = formData.get('category') || 'ألبان وأجبان';
-    const notes = formData.get('notes') || '';
-    const assignedTo = formData.get('assignedTo') || 'user_1';
+  // إضافة محفظة جديدة
+  const handleAddWallet = (e) => {
+    e.preventDefault();
+    if (!newWalletName.trim()) return;
 
-    if (editingShoppingItem) {
-      setShoppingList((prev) =>
-        prev.map((item) =>
-          item.id === editingShoppingItem.id
-            ? { ...item, title, quantity, category, notes, assignedTo, updatedAt: new Date().toISOString() }
-            : item
-        )
-      );
-      showToast('تم تعديل غرض التسوق');
-    } else {
-      const newItem = {
-        id: `shop_${Date.now()}`,
-        walletId: activeWallet.id,
-        title,
-        quantity,
-        actualPrice: null,
-        category,
-        notes,
-        assignedTo,
-        status: 'PENDING',
-        addedBy: currentUserId,
-        updatedAt: new Date().toISOString()
-      };
-      setShoppingList((prev) => [newItem, ...prev]);
-      triggerLiveBroadcast(`أضافت ${currentUser.name} غرضاً جديداً لقائمة التسوق: "${title}"`);
-      showToast('تمت إضافة الغرض للنواقص');
-    }
-    setIsShoppingModalOpen(false);
-    setEditingShoppingItem(null);
-  };
-
-  // تأكيد الشراء ونقله لتبويب "تم الشراء" مع الخصم
-  const handleConfirmPurchase = (item, actualDinars) => {
-    const qirsh = sanitizeQirshAmount(actualDinars);
-    if (!qirsh) {
-      showToast('يرجى كتابة سعر الشراء الفعلي بشكل صحيح', 'error');
-      return;
-    }
-    const newTxId = `tx_shop_${Date.now()}`;
-    setShoppingList((prev) =>
-      prev.map((i) =>
-        i.id === item.id
-          ? { ...i, status: 'PURCHASED', actualPrice: qirsh, transactionId: newTxId, purchasedBy: currentUserId, updatedAt: new Date().toISOString() }
-          : i
-      )
-    );
-
-    const newTx = {
-      id: newTxId,
-      walletId: item.walletId,
-      amount: -qirsh,
-      category: item.category || 'بقالة ومواد تموينية',
-      description: `شراء من قائمة التسوق: ${item.title} (${item.quantity})`,
-      createdBy: currentUserId,
-      date: new Date().toISOString(),
-      syncStatus: 'SYNCED'
+    const newId = 'w-' + Date.now();
+    const createdWallet = {
+      id: newId,
+      name: newWalletName.trim(),
+      members: [
+        { id: 'u1', name: 'أحمد', role: 'admin', title: 'المشرف الرئيسي' }
+      ]
     };
-    setTransactions((prev) => [newTx, ...prev]);
-    setPurchasingItem(null);
-    triggerLiveBroadcast(`تم شراء [${item.title}] ونقله لتبويب "تم الشراء" بقيمة ${formatJOD(qirsh)}`);
-    showToast(`تم تسجيل الشراء وخصم ${formatJOD(qirsh)} من الرصيد`);
+
+    setWallets([...wallets, createdWallet]);
+    setActiveWalletId(newId);
+    setNewWalletName('');
+    setShowAddWalletModal(false);
   };
 
-  // إلغاء إشارة الصح واسترجاع المبلغ كاملاً للمحفظة
-  const handleUncheckPurchasedItem = (item) => {
-    const refund = item.actualPrice || 0;
-    setShoppingList((prev) =>
-      prev.map((i) => (i.id === item.id ? { ...i, status: 'PENDING', actualPrice: null, transactionId: null, purchasedBy: null } : i))
-    );
-    if (refund > 0) {
-      setTransactions((prev) => prev.filter((t) => t.id !== item.transactionId));
-    }
-    triggerLiveBroadcast(`تم إلغاء شراء [${item.title}] واسترجاع ${formatJOD(refund)} للمحفظة`);
-    showToast(`تمت إعادة المنتج لتبويب "قبل الشراء" واسترداد ${formatJOD(refund)} للرصيد المتاح`);
-  };
-
-  // تعديل السعر وتسوية فرق المبلغ تلقائياً
-  const handleUpdatePurchasedPrice = (item, newDinars) => {
-    const newQirsh = sanitizeQirshAmount(newDinars);
-    if (!newQirsh) {
-      showToast('يرجى كتابة سعر صحيح', 'error');
-      return;
-    }
-    const oldQirsh = item.actualPrice || 0;
-    const delta = newQirsh - oldQirsh;
-
-    setShoppingList((prev) =>
-      prev.map((i) => (i.id === item.id ? { ...i, actualPrice: newQirsh, updatedAt: new Date().toISOString() } : i))
-    );
-
-    if (delta !== 0) {
-      setTransactions((prev) =>
-        prev.map((t) =>
-          t.id === item.transactionId
-            ? { ...t, amount: -newQirsh, description: `شراء من قائمة التسوق: ${item.title} (معدل: ${formatJOD(newQirsh)})` }
-            : t
-        )
-      );
-    }
-    setEditingPriceItem(null);
-    setNewPriceInput('');
-    if (delta > 0) showToast(`تم تعديل السعر وخصم فرق ${formatJOD(delta)} من الرصيد`);
-    else if (delta < 0) showToast(`تم تعديل السعر واسترجاع فرق ${formatJOD(Math.abs(delta))} للرصيد المتاح`);
-    else showToast('لم يطرأ أي تغيير على السعر');
-  };
-
-  // حذف محفظة بالكامل (خاص بالمسؤول)
+  // حذف محفظة
   const handleDeleteWallet = (walletId) => {
-    if (!isAdmin || walletId === 'wallet_main' || rawWallets.length <= 1) return;
-    const target = rawWallets.find((w) => w.id === walletId);
-    setRawWallets((prev) => prev.filter((w) => w.id !== walletId));
-    setTransactions((prev) => prev.filter((t) => t.walletId !== walletId));
-    setShoppingList((prev) => prev.filter((i) => i.walletId !== walletId));
-    setActiveWalletId('wallet_main');
-    setWalletToDelete(null);
-    showToast(`تم حذف محفظة "${target?.name}" بنجاح`);
-  };
-
-  const visibleTransactions = useMemo(() => {
-    return transactions.filter((t) => {
-      if (t.walletId !== activeWallet.id) return false;
-      if (!userPerms.canViewOthersTx && t.createdBy !== currentUserId) return false;
-      return true;
-    });
-  }, [transactions, activeWallet.id, userPerms.canViewOthersTx, currentUserId]);
-
-  const { totalInflows, totalOutflows } = useMemo(() => {
-    let inf = 0, out = 0;
-    transactions.filter((t) => t.walletId === activeWallet.id).forEach((t) => {
-      if (t.amount > 0) inf += t.amount;
-      else out += Math.abs(t.amount);
-    });
-    return { totalInflows: inf, totalOutflows: out };
-  }, [transactions, activeWallet.id]);
-
-  const pendingShopping = useMemo(() => shoppingList.filter((i) => i.walletId === activeWallet.id && i.status === 'PENDING'), [shoppingList, activeWallet.id]);
-  const purchasedShopping = useMemo(() => shoppingList.filter((i) => i.walletId === activeWallet.id && i.status === 'PURCHASED'), [shoppingList, activeWallet.id]);
-
-  // دالة طباعة وتصدير ملف الـ PDF الجاهز
-  const handlePrintPdf = (title, filename, contentHtml) => {
-    if (isExportingPdf) return;
-    setIsExportingPdf(true);
-    const win = window.open('', '_blank');
-    if (!win) {
-      setIsExportingPdf(false);
-      showToast('يرجى السماح بالنوافذ المنبثقة للطباعة وحفظ PDF', 'error');
+    if (wallets.length <= 1) {
+      alert('يجب أن تبقى محفظة واحدة نشطة على الأقل في التطبيق.');
       return;
     }
-    win.document.write(`
-      <!DOCTYPE html>
-      <html dir="rtl" lang="ar">
-      <head>
-        <meta charset="utf-8">
-        <title>${escapeHtml(filename.replace('.pdf', ''))}</title>
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
-          body { font-family: 'Cairo', Arial, sans-serif; padding: 25px; color: #0f172a; }
-          .header { text-align: center; border-bottom: 2px solid #0d9488; padding-bottom: 10px; margin-bottom: 20px; }
-          .header h1 { margin: 0; color: #0f766e; font-size: 20px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 11px; }
-          th { background: #f1f5f9; padding: 8px; border: 1px solid #cbd5e1; text-align: right; }
-          td { padding: 7px 8px; border: 1px solid #e2e8f0; }
-          .amount { font-family: monospace; font-weight: bold; }
-          .text-green { color: #166534; }
-          .text-red { color: #991b1b; }
-          @media print { button { display: none; } }
-        </style>
-      </head>
-      <body>
-        <div style="text-align: left; margin-bottom: 15px;">
-          <button onclick="window.print()" style="background:#0d9488; color:#fff; border:none; padding:8px 16px; border-radius:6px; font-family:'Cairo'; font-weight:bold; cursor:pointer;">🖨️ طباعة أو حفظ كملف PDF</button>
-        </div>
-        ${contentHtml}
-        <script>
-          document.title = "${escapeHtml(filename.replace('.pdf', ''))}";
-          window.onload = function() { setTimeout(function(){ window.print(); }, 300); };
-        <\/script>
-      </body>
-      </html>
-    `);
-    win.document.close();
-    setIsExportingPdf(false);
-    showToast(`تم فتح نافذة تصدير ملف: (${filename})`);
+    if (window.confirm('هل أنت متأكد من حذف هذه المحفظة وكافة بياناتها؟')) {
+      const remaining = wallets.filter(w => w.id !== walletId);
+      setWallets(remaining);
+      setTransactions(transactions.filter(t => t.walletId !== walletId));
+      setShoppingItems(shoppingItems.filter(s => s.walletId !== walletId));
+      setActiveWalletId(remaining[0].id);
+    }
+  };
+
+  // إضافة فرد للمحفظة الحالية
+  const handleAddMember = (e) => {
+    e.preventDefault();
+    if (!newMemberName.trim()) return;
+
+    const updatedWallets = wallets.map(w => {
+      if (w.id === activeWalletId) {
+        return {
+          ...w,
+          members: [
+            ...w.members,
+            {
+              id: 'u-' + Date.now(),
+              name: newMemberName.trim(),
+              role: newMemberRole,
+              title: newMemberRole === 'admin' ? 'مشرف مشترك' : 'فرد في العائلة'
+            }
+          ]
+        };
+      }
+      return w;
+    });
+
+    setWallets(updatedWallets);
+    setNewMemberName('');
+    setShowInviteModal(false);
+  };
+
+  // حذف فرد من المحفظة
+  const handleDeleteMember = (memberId) => {
+    if (currentWallet.members.length <= 1) {
+      alert('لا يمكن حذف العضو الوحيد المتبقي في المحفظة.');
+      return;
+    }
+    if (window.confirm('هل تريد بالتأكيد إزالة هذا العضو من المحفظة؟')) {
+      const updatedWallets = wallets.map(w => {
+        if (w.id === activeWalletId) {
+          return {
+            ...w,
+            members: w.members.filter(m => m.id !== memberId)
+          };
+        }
+        return w;
+      });
+      setWallets(updatedWallets);
+      if (currentUser === memberId) {
+        setCurrentUser(updatedWallets.find(w => w.id === activeWalletId).members[0].id);
+      }
+    }
+  };
+
+  // إضافة صنف تسوق
+  const handleAddShoppingItem = (e) => {
+    e.preventDefault();
+    if (!newItemName.trim()) return;
+
+    const item = {
+      id: 's-' + Date.now(),
+      walletId: activeWalletId,
+      name: newItemName.trim(),
+      estimatedCost: parseFloat(newItemCost) || 0,
+      actualCost: 0,
+      status: 'pending'
+    };
+
+    setShoppingItems([...shoppingItems, item]);
+    setNewItemName('');
+    setNewItemCost('');
+  };
+
+  // نقل الصنف إلى المشتريات وتخصيم المبلغ تلقائياً
+  const handleBuyShoppingItem = (item) => {
+    const cost = prompt(`أدخل التكلفة الفعلية لشراء (${item.name}):`, item.estimatedCost || '0');
+    if (cost === null) return;
+    const finalAmount = parseFloat(cost) || 0;
+
+    // تحديث حالة الصنف
+    setShoppingItems(shoppingItems.map(s => s.id === item.id ? { ...s, status: 'bought', actualCost: finalAmount } : s));
+
+    // خصم المعاملة تلقائياً إذا كانت التكلفة أكبر من 0
+    if (finalAmount > 0) {
+      const tx = {
+        id: 'tx-' + Date.now(),
+        walletId: activeWalletId,
+        title: `شراء: ${item.name}`,
+        amount: finalAmount,
+        type: 'expense',
+        category: 'تسوق منزل',
+        date: new Date().toISOString().split('T')[0],
+        addedBy: currentWallet?.members.find(m => m.id === currentUser)?.name || 'أحد الأفراد'
+      };
+      setTransactions(prev => [tx, ...prev]);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans" dir="rtl">
-      {/* بث التحديث اللحظي */}
-      {liveBroadcastEvent && (
-        <div className="bg-emerald-600/90 text-white text-xs py-2 px-4 flex items-center justify-center gap-2 shadow-lg sticky top-0 z-50">
-          <Radio className="w-4 h-4 animate-pulse text-emerald-200" />
-          <span className="font-bold">بث مباشر لحظي:</span>
-          <span>{liveBroadcastEvent}</span>
-        </div>
-      )}
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex justify-center pb-20 selection:bg-cyan-500 selection:text-white">
+      <div className="w-full max-w-md px-4 pt-6">
 
-      {/* التنبيهات العائمة */}
-      {toastMessage && (
-        <div className={`fixed bottom-5 left-5 z-50 py-3 px-5 rounded-2xl shadow-2xl text-xs font-bold flex items-center gap-2 border ${
-          toastMessage.type === 'error' ? 'bg-rose-950 border-rose-700 text-rose-200' : 'bg-emerald-950 border-emerald-700 text-emerald-200'
-        }`}>
-          {toastMessage.type === 'error' ? <AlertTriangle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
-          <span>{toastMessage.msg}</span>
-        </div>
-      )}
-
-      {/* الشريط العلوي الرئيسي */}
-      <header className="bg-slate-900/80 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-teal-500 flex items-center justify-center text-slate-950 font-black shadow-lg">
-              <Wallet className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="font-bold text-base sm:text-lg text-white">ميزانية العائلة</h1>
-              <p className="text-[11px] text-slate-400">دينار أردني (JOD) • متزامن ومحمي</p>
-            </div>
+        {/* رأس التطبيق والشعار */}
+        <header className="text-center mb-6">
+          <div className="inline-flex items-center justify-center p-3 bg-gradient-to-tr from-cyan-600 to-emerald-500 rounded-2xl shadow-lg shadow-cyan-500/20 mb-3">
+            <span className="text-2xl">💰</span>
           </div>
+          <h1 className="text-2xl font-black tracking-tight text-white">ميزانية العائلة</h1>
+          <p className="text-xs text-slate-400 font-medium mt-1">دينار أردني (JOD) • بياناتك محفوظة محلياً وسحابياً</p>
+        </header>
 
-          <div className="flex items-center gap-2.5">
+        {/* محدد المحفظة والفرد النشط */}
+        <div className="grid grid-cols-2 gap-2 mb-4 bg-slate-900/80 p-2 rounded-2xl border border-slate-800">
+          <div>
+            <label className="block text-[10px] text-slate-400 mb-1 font-semibold pr-1">المحفظة النشطة:</label>
             <select
-              value={activeWallet.id}
+              value={activeWalletId}
               onChange={(e) => setActiveWalletId(e.target.value)}
-              className="bg-slate-800 border border-slate-700 text-xs font-bold text-white rounded-xl px-3 py-2 cursor-pointer"
+              className="w-full bg-slate-800 text-xs font-bold text-cyan-300 rounded-xl px-2 py-2 border border-slate-700 outline-none"
             >
-              {wallets.filter((w) => w.members.some((m) => m.userId === currentUserId)).map((w) => (
+              {wallets.map(w => (
                 <option key={w.id} value={w.id}>📁 {w.name}</option>
               ))}
             </select>
-
-            <div className="flex items-center gap-1.5 bg-slate-800 border border-slate-700 p-1 rounded-xl">
-              <span className="text-sm px-1">{currentUser.avatar}</span>
-              <select
-                value={currentUserId}
-                onChange={(e) => setCurrentUserId(e.target.value)}
-                className="bg-transparent text-xs text-slate-200 font-bold cursor-pointer"
-              >
-                {USERS.map((u) => (
-                  <option key={u.id} value={u.id} className="bg-slate-900 text-white">
-                    {u.role === 'ADMIN' ? '👑 ' : '👤 '} {u.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+          </div>
+          <div>
+            <label className="block text-[10px] text-slate-400 mb-1 font-semibold pr-1">الحساب النشط:</label>
+            <select
+              value={currentUser}
+              onChange={(e) => setCurrentUser(e.target.value)}
+              className="w-full bg-slate-800 text-xs font-bold text-amber-300 rounded-xl px-2 py-2 border border-slate-700 outline-none"
+            >
+              {currentWallet?.members.map(m => (
+                <option key={m.id} value={m.id}>
+                  {m.role === 'admin' ? '👑' : '👤'} {m.name} ({m.title})
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        {/* أزرار التنقل بين التبويبات */}
-        <div className="max-w-7xl mx-auto px-4 flex items-center gap-2 overflow-x-auto py-2 border-t border-slate-800">
+        {/* شريط التبويبات الثلاثة */}
+        <nav className="grid grid-cols-3 gap-1 bg-slate-900 p-1.5 rounded-2xl border border-slate-800 mb-6 shadow-md">
           <button
-            onClick={() => setActiveTab('dashboard')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 ${
-              activeTab === 'dashboard' ? 'bg-teal-500 text-slate-950' : 'text-slate-400 hover:text-white'
+            onClick={() => setCurrentTab('dashboard')}
+            className={`py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${
+              currentTab === 'dashboard' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30' : 'text-slate-400 hover:text-white'
             }`}
           >
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>{isEmergencyWallet ? 'حركات وسجل الصندوق' : 'لوحة التحكم والمصروفات'}</span>
+            <Icons.Dashboard /> المصروفات
           </button>
-
-          {isHouseholdWallet && (
-            <button
-              onClick={() => setActiveTab('shopping_list')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 relative ${
-                activeTab === 'shopping_list' ? 'bg-teal-500 text-slate-950' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <ShoppingCart className="w-3.5 h-3.5" />
-              <span>قائمة تسوق المنزل</span>
-              {pendingShopping.length > 0 && (
-                <span className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full">
-                  {pendingShopping.length}
-                </span>
-              )}
-            </button>
-          )}
-
-          {isAdmin && (
-            <button
-              onClick={() => setActiveTab('reports')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 border ${
-                activeTab === 'reports' ? 'bg-emerald-500 text-slate-950 border-emerald-400' : 'text-emerald-400 border-emerald-500/30'
-              }`}
-            >
-              <FileDown className="w-3.5 h-3.5" />
-              <span>التقارير المالية وتصدير PDF</span>
-            </button>
-          )}
-
           <button
-            onClick={() => setActiveTab('wallets')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 ${
-              activeTab === 'wallets' ? 'bg-teal-500 text-slate-950' : 'text-slate-400 hover:text-white'
+            onClick={() => setCurrentTab('shopping')}
+            className={`py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${
+              currentTab === 'shopping' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30' : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Users className="w-3.5 h-3.5" />
-            <span>المحافظ والأعضاء</span>
+            <Icons.Cart /> قائمة التسوق
           </button>
-        </div>
-      </header>
+          <button
+            onClick={() => setCurrentTab('wallets')}
+            className={`py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${
+              currentTab === 'wallets' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Icons.Users /> المحافظ والأعضاء
+          </button>
+        </nav>
 
-      {/* محتوى الشاشات */}
-      <main className="max-w-7xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
-        {/* شاشة لوحة التحكم */}
-        {activeTab === 'dashboard' && (
-          <div className="space-y-6">
-            {!isEmergencyWallet ? (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* كرت الرصيد الصافي المتاح */}
-                  <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl">
-                    <span className="text-xs font-bold text-slate-400 block mb-2">الرصيد الكلي المتاح</span>
-                    <h2 className="text-3xl font-black text-white font-mono">{formatJOD(activeWallet.currentBalance)}</h2>
-                    <p className="text-[11px] text-teal-400 mt-2 font-bold">✓ الرصيد الصافي المتبقي المتاح</p>
-                  </div>
-
-                  {/* كرت إجمالي المدخولات */}
-                  <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl">
-                    <span className="text-xs font-bold text-slate-400 block mb-2">إجمالي المدخولات</span>
-                    <h3 className="text-2xl font-black text-emerald-400 font-mono">+{formatJOD(totalInflows)}</h3>
-                    <p className="text-[11px] text-slate-400 mt-2">شامل كافة الإيداعات والرواتب</p>
-                  </div>
-
-                  {/* كرت إجمالي المصروفات */}
-                  <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl">
-                    <span className="text-xs font-bold text-slate-400 block mb-2">إجمالي المصروفات والنفقات</span>
-                    <h3 className="text-2xl font-black text-rose-400 font-mono">-{formatJOD(totalOutflows)}</h3>
-                    <p className="text-[11px] text-slate-400 mt-2">شامل الفواتير والمشتريات</p>
-                  </div>
+        {/* ==================================================== */}
+        {/* التبويب الأول: لوحة التحكم وسجل المصروفات            */}
+        {/* ==================================================== */}
+        {currentTab === 'dashboard' && (
+          <div className="space-y-4">
+            {/* بطاقة الرصيد الكلي */}
+            <div className="bg-gradient-to-b from-slate-900 to-slate-900/90 border border-slate-800 p-5 rounded-3xl shadow-xl text-center relative overflow-hidden">
+              <div className="text-xs text-slate-400 font-semibold mb-1">الرصيد المتاح حالياً</div>
+              <div className={`text-4xl font-black tracking-tight mb-4 ${balance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {balance.toFixed(2)} <span className="text-lg font-medium text-slate-300">د.أ</span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-800/80">
+                <div className="bg-slate-950/60 p-2.5 rounded-2xl border border-slate-800/50">
+                  <div className="text-[10px] text-slate-400 mb-0.5 font-medium">إجمالي الدخل</div>
+                  <div className="text-sm font-bold text-emerald-400">+{totalIncome.toFixed(2)} د.أ</div>
                 </div>
-
-                {/* سجل العمليات والمعاملات */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
-                    <h3 className="font-bold text-sm text-white">سجل العمليات والمعاملات</h3>
-                    {userPerms.canAddTx && (
-                      <button
-                        onClick={() => setIsTxModalOpen(true)}
-                        className="flex items-center gap-1.5 bg-teal-500 hover:bg-teal-600 text-slate-950 px-3.5 py-2 rounded-xl text-xs font-bold shadow-md"
-                      >
-                        <Plus className="w-4 h-4 font-bold" />
-                        <span>معاملة يدوية</span>
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="space-y-2.5">
-                    {visibleTransactions.map((tx) => {
-                      const isIncome = tx.amount > 0;
-                      return (
-                        <div key={tx.id} className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-sm text-white">{tx.category}</span>
-                              <span className="text-[10px] text-slate-400">{formatShortDate(tx.date)}</span>
-                            </div>
-                            <p className="text-xs text-slate-400 mt-0.5">{tx.description || '-'}</p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <span className={`font-mono text-base font-bold ${isIncome ? 'text-emerald-400' : 'text-rose-400'}`}>
-                              {isIncome ? '+' : ''}{formatJOD(tx.amount)}
-                            </span>
-                            {(isAdmin || tx.createdBy === currentUserId) && (
-                              <button onClick={() => handleDeleteTransaction(tx.id)} className="p-1.5 text-slate-500 hover:text-rose-400">
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </>
-            ) : (
-              /* واجهة صندوق الطوارئ والتوفير */
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-6 rounded-3xl bg-slate-900 border border-emerald-700/60 shadow-xl">
-                    <span className="text-xs font-bold text-emerald-300 block mb-2">المبلغ المتبقي بالصندوق (الرصيد الفعلي)</span>
-                    <h2 className="text-3xl font-black text-white font-mono">{formatJOD(activeWallet.currentBalance)}</h2>
-                    <p className="text-[11px] text-emerald-400 mt-2 font-bold">✓ الرصيد الاحتياطي الصافي المتبقي المتاح للطوارئ</p>
-                  </div>
-                  <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl">
-                    <span className="text-xs font-bold text-slate-400 block mb-2">إجمالي الإيداعات</span>
-                    <h3 className="text-2xl font-black text-emerald-400 font-mono">+{formatJOD(totalInflows)}</h3>
-                    <p className="text-[11px] text-slate-400 mt-2">تغذية الصندوق والمدخرات</p>
-                  </div>
-                  <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl">
-                    <span className="text-xs font-bold text-slate-400 block mb-2">إجمالي السحوبات</span>
-                    <h3 className="text-2xl font-black text-rose-400 font-mono">-{formatJOD(totalOutflows)}</h3>
-                    <p className="text-[11px] text-slate-400 mt-2">سحوبات الحالات الطارئة</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
-                  <h3 className="font-bold text-sm text-white">سجل حركات صندوق الطوارئ والتوفير</h3>
-                  <button
-                    onClick={() => setIsTxModalOpen(true)}
-                    className="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 px-3.5 py-2 rounded-xl text-xs font-bold"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>إيداع / سحب طارئ</span>
-                  </button>
-                </div>
-
-                <div className="space-y-2.5">
-                  {visibleTransactions.map((tx) => (
-                    <div key={tx.id} className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
-                      <div>
-                        <span className="font-bold text-sm text-white">{tx.amount > 0 ? 'إيداع وتوفير' : 'سحب طارئ'}</span>
-                        <span className="text-xs text-slate-400 block mt-0.5">{tx.category} • {formatShortDate(tx.date)}</span>
-                      </div>
-                      <span className={`font-mono text-base font-bold ${tx.amount > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        {tx.amount > 0 ? '+' : ''}{formatJOD(tx.amount)}
-                      </span>
-                    </div>
-                  ))}
+                <div className="bg-slate-950/60 p-2.5 rounded-2xl border border-slate-800/50">
+                  <div className="text-[10px] text-slate-400 mb-0.5 font-medium">إجمالي الصرف</div>
+                  <div className="text-sm font-bold text-rose-400">-{totalExpense.toFixed(2)} د.أ</div>
                 </div>
               </div>
-            )}
+            </div>
+
+            {/* زر إضافة معاملة */}
+            <button
+              onClick={() => setShowAddTxModal(true)}
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2 active:scale-95 transition-all"
+            >
+              <Icons.Plus /> إضافة حركة مالية (دخل أو مصروف)
+            </button>
+
+            {/* سجل المعاملات */}
+            <div className="space-y-2">
+              <h3 className="text-xs font-bold text-slate-400 pr-1">أحدث العمليات في {currentWallet?.name}:</h3>
+              {walletTransactions.length === 0 ? (
+                <div className="text-center py-10 bg-slate-900/40 rounded-2xl border border-slate-800/60 text-slate-500 text-xs">
+                  لا توجد حركات مسجلة حتى الآن. اضغط الزر بالأعلى لإضافة أول عملية.
+                </div>
+              ) : (
+                walletTransactions.map(t => (
+                  <div key={t.id} className="bg-slate-900 border border-slate-800/80 p-3.5 rounded-2xl flex items-center justify-between hover:border-slate-700 transition-all">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${
+                        t.type === 'income' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                      }`}>
+                        {t.type === 'income' ? '↓' : '↑'}
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-white">{t.title}</div>
+                        <div className="text-[11px] text-slate-400 flex gap-2">
+                          <span>{t.date}</span>
+                          <span>•</span>
+                          <span>بواسطة: {t.addedBy}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className={`text-sm font-black ${t.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {t.type === 'income' ? '+' : '-'}{t.amount.toFixed(2)} د.أ
+                      </div>
+                      <button onClick={() => handleDeleteTx(t.id)} className="p-1 hover:bg-slate-800 rounded-lg">
+                        <Icons.Trash />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         )}
 
-        {/* شاشة قائمة تسوق المنزل */}
-        {activeTab === 'shopping_list' && isHouseholdWallet && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <ShoppingCart className="w-5 h-5 text-teal-400" />
-                <span>قائمة تسوق "{activeWallet.name}"</span>
-              </h2>
+        {/* ==================================================== */}
+        {/* التبويب الثاني: قائمة تسوق المنزل التفاعلية          */}
+        {/* ==================================================== */}
+        {currentTab === 'shopping' && (
+          <div className="space-y-4">
+            {/* إضافة غرض تسوق */}
+            <form onSubmit={handleAddShoppingItem} className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl space-y-2">
+              <div className="text-xs font-bold text-slate-300">إضافة طلب أو غرض للمنزل:</div>
+              <div className="grid grid-cols-3 gap-2">
+                <input
+                  type="text"
+                  placeholder="اسم الصنف (مثلاً: خضار)"
+                  value={newItemName}
+                  onChange={(e) => setNewItemName(e.target.value)}
+                  className="col-span-2 bg-slate-800 border border-slate-700 text-xs rounded-xl px-3 py-2.5 text-white outline-none"
+                />
+                <input
+                  type="number"
+                  step="0.1"
+                  placeholder="السعر المتوقع"
+                  value={newItemCost}
+                  onChange={(e) => setNewItemCost(e.target.value)}
+                  className="col-span-1 bg-slate-800 border border-slate-700 text-xs rounded-xl px-3 py-2.5 text-white outline-none"
+                />
+              </div>
               <button
-                onClick={() => { setEditingShoppingItem(null); setIsShoppingModalOpen(true); }}
-                className="flex items-center gap-1.5 bg-teal-500 hover:bg-teal-600 text-slate-950 px-4 py-2 rounded-xl text-xs font-bold"
+                type="submit"
+                className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 font-bold text-xs rounded-xl text-white flex items-center justify-center gap-1 shadow-md shadow-cyan-700/20"
               >
-                <Plus className="w-4 h-4" />
-                <span>إضافة غرض جديد</span>
+                <Icons.Plus /> إضافة للقائمة
+              </button>
+            </form>
+
+            {/* قائمة الأغراض المطلوبة */}
+            <div className="space-y-2">
+              <h3 className="text-xs font-bold text-amber-400 pr-1">الأغراض المطلوبة حالياً:</h3>
+              {shoppingItems.filter(s => s.walletId === activeWalletId && s.status === 'pending').map(item => (
+                <div key={item.id} className="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-bold text-white">{item.name}</div>
+                    <div className="text-[10px] text-slate-400">تقديري: {item.estimatedCost.toFixed(2)} د.أ</div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleBuyShoppingItem(item)}
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold rounded-xl flex items-center gap-1 shadow-sm"
+                    >
+                      <Icons.Check /> تم الشراء
+                    </button>
+                    <button
+                      onClick={() => setShoppingItems(shoppingItems.filter(s => s.id !== item.id))}
+                      className="p-1.5 hover:bg-slate-800 rounded-lg"
+                    >
+                      <Icons.Trash />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* الأغراض التي تم شراؤها */}
+            <div className="space-y-2 pt-2 border-t border-slate-800">
+              <h3 className="text-xs font-bold text-slate-500 pr-1">أغراض تم شراؤها مؤخراً:</h3>
+              {shoppingItems.filter(s => s.walletId === activeWalletId && s.status === 'bought').map(item => (
+                <div key={item.id} className="bg-slate-900/40 border border-slate-800/40 p-2.5 rounded-xl flex items-center justify-between text-slate-500">
+                  <div className="text-xs line-through">{item.name}</div>
+                  <div className="text-xs font-semibold">{item.actualCost.toFixed(2)} د.أ</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ==================================================== */}
+        {/* التبويب الثالث: إدارة المحافظ والأعضاء بالكامل        */}
+        {/* ==================================================== */}
+        {currentTab === 'wallets' && (
+          <div className="space-y-5">
+            {/* أزرار الإجراءات السريعة */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setShowAddWalletModal(true)}
+                className="py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-1.5 shadow-md shadow-cyan-900/30"
+              >
+                <Icons.Plus /> محفظة جديدة
+              </button>
+              <button
+                onClick={() => setShowInviteModal(true)}
+                className="py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-cyan-300 font-bold text-xs rounded-2xl flex items-center justify-center gap-1.5 shadow-md"
+              >
+                <Icons.Users /> دعوة وإضافة فرد
               </button>
             </div>
 
-            {/* تبويبا: قبل الشراء وبعد الشراء */}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setShoppingTab('PENDING')}
-                className={`p-4 rounded-2xl border text-right flex items-center justify-between ${
-                  shoppingTab === 'PENDING' ? 'bg-amber-500/15 border-amber-500/50' : 'bg-slate-900/60 border-slate-800'
-                }`}
-              >
-                <div>
-                  <span className="font-bold text-sm block text-white">المنتجات قبل الشراء</span>
-                  <span className="text-xs text-slate-400">نواقص بانتظار التسعير في السوق</span>
-                </div>
-                <span className="text-xs font-black px-2.5 py-1 rounded-xl bg-amber-500 text-slate-950">{pendingShopping.length}</span>
-              </button>
-
-              <button
-                onClick={() => setShoppingTab('PURCHASED')}
-                className={`p-4 rounded-2xl border text-right flex items-center justify-between ${
-                  shoppingTab === 'PURCHASED' ? 'bg-rose-950/40 border-rose-600' : 'bg-slate-900/60 border-slate-800'
-                }`}
-              >
-                <div>
-                  <span className="font-bold text-sm block text-white">المنتجات بعد الشراء</span>
-                  <span className="text-xs text-slate-400">مكتملة ومخصومة من الرصيد</span>
-                </div>
-                <span className="text-xs font-black px-2.5 py-1 rounded-xl bg-rose-500 text-white">{purchasedShopping.length}</span>
-              </button>
-            </div>
-
-            {/* صفوف عناصر التسوق */}
-            <div className="space-y-3">
-              {(shoppingTab === 'PENDING' ? pendingShopping : purchasedShopping).map((item, idx) => {
-                const isBought = item.status === 'PURCHASED';
-                const cat = SHOPPING_CATEGORIES[item.category] || { icon: '📦', color: 'bg-slate-800 text-slate-300' };
-
+            {/* قائمة كافة المحافظ */}
+            <div className="space-y-2">
+              <h3 className="text-xs font-bold text-slate-400 pr-1">المحافظ العائلية المسجلة:</h3>
+              {wallets.map(w => {
+                const isSelected = w.id === activeWalletId;
                 return (
-                  <div key={item.id} className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <span className="w-7 h-7 rounded-lg bg-slate-800 text-teal-300 font-mono font-bold text-xs flex items-center justify-center border border-slate-700">
-                        #{idx + 1}
-                      </span>
-                      <button
-                        onClick={() => isBought ? handleUncheckPurchasedItem(item) : setPurchasingItem(item)}
-                        className="text-slate-400 hover:text-white"
-                        title={isBought ? "إلغاء الشراء واسترداد المبلغ" : "تسجيل الشراء وإدخال القيمة"}
-                      >
-                        {isBought ? <CheckSquare className="w-5 h-5 text-rose-500" /> : <Square className="w-5 h-5 text-slate-500" />}
-                      </button>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-sm font-bold ${isBought ? 'line-through text-rose-300' : 'text-white'}`}>{item.title}</span>
-                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-teal-300">{item.quantity}</span>
-                          <span className={`text-[10px] px-2 py-0.5 rounded-md border flex items-center gap-1 ${cat.color}`}>
-                            <span>{cat.icon}</span>
-                            <span>{item.category}</span>
-                          </span>
-                        </div>
-                        {item.notes && <span className="text-xs text-slate-400 italic">📝 {item.notes}</span>}
+                  <div
+                    key={w.id}
+                    className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between ${
+                      isSelected ? 'bg-cyan-950/40 border-cyan-500/60 shadow-lg shadow-cyan-950/50' : 'bg-slate-900 border-slate-800'
+                    }`}
+                  >
+                    <div>
+                      <div className="text-sm font-bold text-white flex items-center gap-2">
+                        <span>📁 {w.name}</span>
+                        {isSelected && <span className="text-[10px] bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full border border-cyan-500/30 font-semibold">النشطة حالياً</span>}
                       </div>
+                      <div className="text-[11px] text-slate-400 mt-0.5">عدد الأعضاء: {w.members.length} فرد</div>
                     </div>
-
                     <div className="flex items-center gap-2">
-                      {isBought ? (
-                        <>
-                          <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-xl bg-rose-500/15 text-rose-300 border border-rose-500/30">
-                            {formatJOD(item.actualPrice)}
-                          </span>
-                          <button
-                            onClick={() => { setEditingPriceItem(item); setNewPriceInput(((item.actualPrice || 0) / 100).toFixed(2)); }}
-                            className="p-1.5 text-amber-400 hover:bg-slate-800 rounded-lg"
-                            title="تعديل السعر وتسوية الفرق"
-                          >
-                            <Edit3 className="w-4 h-4" />
-                          </button>
-                        </>
-                      ) : (
+                      {!isSelected && (
                         <button
-                          onClick={() => setPurchasingItem(item)}
-                          className="text-xs font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 px-3 py-1.5 rounded-xl hover:bg-emerald-900/50"
+                          onClick={() => setActiveWalletId(w.id)}
+                          className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl border border-slate-700 text-white"
                         >
-                          تم الشراء - إدخال القيمة
+                          تفعيل
                         </button>
                       )}
                       <button
-                        onClick={() => setShoppingList((prev) => prev.filter((i) => i.id !== item.id))}
-                        className="p-1.5 text-slate-500 hover:text-rose-400"
-                        title="حذف البند"
+                        onClick={() => handleDeleteWallet(w.id)}
+                        className="p-2 hover:bg-rose-500/10 rounded-xl transition-all"
+                        title="حذف المحفظة"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Icons.Trash />
                       </button>
                     </div>
                   </div>
                 );
               })}
             </div>
-          </div>
-        )}
 
-        {/* شاشة تصدير تقارير PDF الرسمية */}
-        {activeTab === 'reports' && isAdmin && (
-          <div className="space-y-6">
-            <div className="bg-slate-900/60 p-6 rounded-3xl border border-slate-800 space-y-4">
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <FileDown className="w-5 h-5 text-emerald-400" />
-                <span>نظام استخراج وطباعة تقارير PDF الرسمية</span>
-              </h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* تقرير نهاية الشهر التقويمي */}
-                <div className="p-5 bg-slate-950/60 border border-slate-800 rounded-2xl space-y-3">
-                  <h3 className="font-bold text-sm text-white">1. تقرير نهاية الشهر التقويمي (PDF)</h3>
-                  <p className="text-xs text-slate-400">يصدر جدول الأرصدة المتبقية لكافة المحافظ وكافة حركات الشهر.</p>
-                  <button
-                    onClick={() => {
-                      const monthName = ARABIC_MONTH_NAMES[new Date().getMonth()];
-                      const year = new Date().getFullYear();
-                      const filename = `الحركات المالية لشهر ${monthName} ${year}.pdf`;
-                      const html = `
-                        <div class="header">
-                          <h1>ميزانية العائلة - تقرير الحركات المالية لشهر ${escapeHtml(monthName)} ${year}</h1>
-                          <p>المشرف: ${escapeHtml(currentUser.name)} | التاريخ: ${new Date().toLocaleDateString('ar-JO')}</p>
-                        </div>
-                        <h3>أرصدة المحافظ بنهاية الشهر:</h3>
-                        <table>
-                          <tr><th>المحفظة</th><th>الرصيد المتبقي الفعلي</th></tr>
-                          ${wallets.map(w => `<tr><td>${escapeHtml(w.name)}</td><td class="amount">${formatJOD(w.currentBalance)}</td></tr>`).join('')}
-                        </table>
-                        <h3>سجل حركات الشهر:</h3>
-                        <table>
-                          <tr><th>التاريخ</th><th>التصنيف</th><th>الوصف</th><th>المبلغ</th></tr>
-                          ${visibleTransactions.map(t => `<tr><td>${formatShortDate(t.date)}</td><td>${escapeHtml(t.category)}</td><td>${escapeHtml(t.description || '-')}</td><td class="amount ${t.amount > 0 ? 'text-green' : 'text-red'}">${t.amount > 0 ? '+' : ''}${formatJOD(t.amount)}</td></tr>`).join('')}
-                        </table>
-                      `;
-                      handlePrintPdf('تقرير نهاية الشهر', filename, html);
-                    }}
-                    className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs rounded-xl shadow-md flex items-center justify-center gap-2"
-                  >
-                    <Download className="w-4 h-4 font-bold" />
-                    <span>تصدير تقرير نهاية الشهر الحالي (PDF)</span>
-                  </button>
-                </div>
-
-                {/* التقرير المالي السنوي الشامل */}
-                <div className="p-5 bg-slate-950/60 border border-slate-800 rounded-2xl space-y-3">
-                  <h3 className="font-bold text-sm text-white">2. التقرير المالي السنوي الشامل (PDF)</h3>
-                  <p className="text-xs text-slate-400">ملخص شهري لكافة أشهر السنة وتحليل لأكثر البنود التي صرف عليها المال.</p>
-                  <button
-                    onClick={() => {
-                      const year = new Date().getFullYear();
-                      const filename = `التقرير المالي السنوي لسنة ${year}.pdf`;
-                      const html = `
-                        <div class="header">
-                          <h1>ميزانية العائلة - التقرير المالي السنوي الشامل لسنة ${year}</h1>
-                          <p>المسؤول: ${escapeHtml(currentUser.name)} | إجمالي المصروفات السنوية: -${formatJOD(totalOutflows)}</p>
-                        </div>
-                        <h3>أرصدة المحافظ الإجمالية:</h3>
-                        <table>
-                          <tr><th>المحفظة</th><th>الرصيد</th></tr>
-                          ${wallets.map(w => `<tr><td>${escapeHtml(w.name)}</td><td class="amount">${formatJOD(w.currentBalance)}</td></tr>`).join('')}
-                        </table>
-                      `;
-                      handlePrintPdf('التقرير السنوي الشامل', filename, html);
-                    }}
-                    className="w-full py-2.5 bg-teal-500 hover:bg-teal-600 text-slate-950 font-black text-xs rounded-xl shadow-md flex items-center justify-center gap-2"
-                  >
-                    <Download className="w-4 h-4 font-bold" />
-                    <span>تصدير التقرير السنوي الشامل (PDF)</span>
-                  </button>
-                </div>
+            {/* أعضاء المحفظة الحالية وإمكانية حذفهم */}
+            <div className="bg-slate-900 border border-slate-800 p-4 rounded-3xl space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold text-cyan-400">أفراد محفظة ({currentWallet?.name}):</h3>
+                <span className="text-[10px] text-slate-400">{currentWallet?.members.length} مسجلين</span>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* شاشة إدارة المحافظ والأعضاء */}
-        {activeTab === 'wallets' && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
-              <h2 className="text-base font-bold text-white">إدارة المحافظ وأفراد العائلة</h2>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setIsRedeemModalOpen(true)}
-                  className="bg-slate-800 hover:bg-slate-700 text-teal-300 border border-teal-500/30 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5"
-                >
-                  <KeyRound className="w-3.5 h-3.5" />
-                  <span>انضمام برمز</span>
-                </button>
-                {isAdmin && (
-                  <button
-                    onClick={() => { setGeneratedInviteCode(generateSecureInviteCode()); setIsInviteModalOpen(true); }}
-                    className="bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>دعوة فرد</span>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-              {wallets.map((w) => (
-                <div key={w.id} className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between gap-3">
-                  <div>
-                    <span className="font-bold text-white block">📁 {w.name}</span>
-                    <span className="font-mono text-sm font-bold text-teal-300 mt-1 block">{formatJOD(w.currentBalance)}</span>
-                    <span className="text-[11px] text-slate-400 mt-1 block">الأعضاء: {w.members.length}</span>
-                  </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+              <div className="space-y-2">
+                {currentWallet?.members.map(member => (
+                  <div key={member.id} className="bg-slate-950/80 border border-slate-800 p-3 rounded-2xl flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-slate-800 flex items-center justify-center text-sm">
+                        {member.role === 'admin' ? '👑' : '👤'}
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white">{member.name}</div>
+                        <div className="text-[10px] text-slate-400">{member.title}</div>
+                      </div>
+                    </div>
                     <button
-                      onClick={() => setActiveWalletId(w.id)}
-                      className={`text-xs font-bold py-1 px-3 rounded-lg ${w.id === activeWallet.id ? 'bg-teal-500 text-slate-950' : 'bg-slate-800 text-slate-300'}`}
+                      onClick={() => handleDeleteMember(member.id)}
+                      className="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-[11px] font-bold rounded-xl border border-rose-500/30 flex items-center gap-1 transition-all"
                     >
-                      {w.id === activeWallet.id ? 'النشطة' : 'اختيار'}
+                      <Icons.Trash /> حذف
                     </button>
-                    {isAdmin && w.id !== 'wallet_main' && (
-                      <button onClick={() => setWalletToDelete(w)} className="p-1.5 text-slate-500 hover:text-rose-400">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         )}
-      </main>
 
-      {/* نافذة تسجيل حركة يدوية */}
-      {isTxModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md p-6">
-            <h3 className="font-bold text-sm text-white mb-4">تسجيل حركة مالية جديدة</h3>
-            <form onSubmit={(e) => { e.preventDefault(); handleAddTransaction(new FormData(e.target)); }} className="space-y-4">
-              <div className="grid grid-cols-2 gap-2">
-                <label className="p-2.5 bg-slate-800 border border-slate-700 rounded-xl flex items-center justify-center gap-2 cursor-pointer">
-                  <input type="radio" name="type" value="EXPENSE" defaultChecked className="accent-rose-500" />
-                  <span className="text-xs font-bold text-rose-300">مصروف / سحب</span>
-                </label>
-                <label className="p-2.5 bg-slate-800 border border-slate-700 rounded-xl flex items-center justify-center gap-2 cursor-pointer">
-                  <input type="radio" name="type" value="INCOME" className="accent-emerald-500" />
-                  <span className="text-xs font-bold text-emerald-300">دخل / إيداع</span>
-                </label>
-              </div>
-              <input type="number" name="amount" step="0.01" min="0.01" required placeholder="المبلغ بالدينار (مثال: 15.50)" className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white text-sm font-bold" />
-              <input type="text" name="category" required placeholder="التصنيف (مثال: بقالة، كهرباء، وقود)" className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white text-xs" />
-              {!isEmergencyWallet && <input type="text" name="description" placeholder="ملاحظة أو بيان إضافي (اختياري)" className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white text-xs" />}
-              <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => setIsTxModalOpen(false)} className="w-1/2 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold">إلغاء</button>
-                <button type="submit" className="w-1/2 py-2 bg-teal-500 text-slate-950 rounded-xl text-xs font-black">حفظ المعاملة</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* نافذة إضافة غرض تسوق */}
-      {isShoppingModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md p-6">
-            <h3 className="font-bold text-sm text-white mb-4">إضافة غرض لقائمة التسوق</h3>
-            <form onSubmit={(e) => { e.preventDefault(); handleSaveShoppingItem(new FormData(e.target)); }} className="space-y-4">
-              <input type="text" name="title" defaultValue={editingShoppingItem?.title || ''} required placeholder="اسم الغرض (مثال: حليب، خضار، معكرونة)" className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white text-xs" />
-              <input type="text" name="quantity" defaultValue={editingShoppingItem?.quantity || '1'} placeholder="الكمية (مثال: 2 كغم، عبوة)" className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white text-xs" />
-              <select name="category" defaultValue={editingShoppingItem?.category || 'ألبان وأجبان'} className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white text-xs">
-                {Object.keys(SHOPPING_CATEGORIES).map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <input type="text" name="notes" defaultValue={editingShoppingItem?.notes || ''} placeholder="ملاحظة إضافية (الماركة، المكان)" className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white text-xs" />
-              <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => setIsShoppingModalOpen(false)} className="w-1/2 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold">إلغاء</button>
-                <button type="submit" className="w-1/2 py-2 bg-teal-500 text-slate-950 rounded-xl text-xs font-black">إضافة للنواقص</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* نافذة إدخال سعر الشراء الفعلي بالسوق */}
-      {purchasingItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md p-6">
-            <h3 className="font-bold text-sm text-white mb-2">إدخال سعر الشراء الفعلي</h3>
-            <p className="text-xs text-slate-400 mb-4">{purchasingItem.title} ({purchasingItem.quantity})</p>
-            <form onSubmit={(e) => { e.preventDefault(); handleConfirmPurchase(purchasingItem, new FormData(e.target).get('price')); }} className="space-y-4">
-              <input type="number" name="price" step="0.01" min="0.01" required autoFocus placeholder="السعر المدفوع بالدينار (مثال: 3.50)" className="w-full bg-slate-800 border border-emerald-500 rounded-xl p-3 text-white text-base font-bold font-mono" />
-              <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => setPurchasingItem(null)} className="w-1/2 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold">إلغاء</button>
-                <button type="submit" className="w-1/2 py-2 bg-emerald-500 text-slate-950 rounded-xl text-xs font-black">تأكيد الشراء والخصم</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* نافذة تعديل سعر المشترى وتسوية الفرق بالمحفظة */}
-      {editingPriceItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md p-6">
-            <h3 className="font-bold text-sm text-white mb-2">تعديل سعر المنتج وتسوية الفرق</h3>
-            <p className="text-xs text-slate-400 mb-4">{editingPriceItem.title} (مسجل حالياً: {formatJOD(editingPriceItem.actualPrice)})</p>
-            <form onSubmit={(e) => { e.preventDefault(); handleUpdatePurchasedPrice(editingPriceItem, newPriceInput); }} className="space-y-4">
-              <input type="number" step="0.01" min="0.01" required autoFocus value={newPriceInput} onChange={(e) => setNewPriceInput(e.target.value)} placeholder="السعر الفعلي الجديد" className="w-full bg-slate-800 border border-amber-500 rounded-xl p-3 text-white text-base font-bold font-mono" />
-              <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => setEditingPriceItem(null)} className="w-1/2 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold">إلغاء</button>
-                <button type="submit" className="w-1/2 py-2 bg-amber-500 text-slate-950 rounded-xl text-xs font-black">تأكيد وتسوية الرصيد</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* نافذة الانضمام عبر رمز دعوة مشفر */}
-      {isRedeemModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md p-6">
-            <h3 className="font-bold text-sm text-white mb-3">الانضمام للمحفظة برمز مشفر</h3>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              const code = redeemCodeInput.trim().toUpperCase();
-              if (code === generatedInviteCode) {
-                showToast('تم الانضمام للمحفظة بنجاح');
-                setIsRedeemModalOpen(false);
-              } else {
-                showToast('رمز الدعوة غير صحيح', 'error');
-              }
-            }} className="space-y-4">
-              <input type="text" value={redeemCodeInput} onChange={(e) => setRedeemCodeInput(e.target.value)} placeholder="FB-XXXX-XXXX-XXXX" required className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-teal-300 font-mono text-center tracking-widest text-sm" />
-              <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => setIsRedeemModalOpen(false)} className="w-1/2 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold">إلغاء</button>
-                <button type="submit" className="w-1/2 py-2 bg-teal-500 text-slate-950 rounded-xl text-xs font-black">تأكيد الانضمام</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* نافذة تأكيد حذف محفظة */}
-      {walletToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-rose-800 rounded-3xl w-full max-w-md p-6">
-            <h3 className="font-bold text-sm text-rose-400 mb-2">تأكيد حذف المحفظة نهائياً</h3>
-            <p className="text-xs text-slate-300 mb-4">هل أنت متأكد من حذف محفظة "{walletToDelete.name}" وكافة حركاتها المالية؟ لا يمكن التراجع عن هذا الإجراء.</p>
-            <div className="flex gap-2">
-              <button onClick={() => setWalletToDelete(null)} className="w-1/2 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold">إلغاء</button>
-              <button onClick={() => handleDeleteWallet(walletToDelete.id)} className="w-1/2 py-2 bg-rose-600 text-white rounded-xl text-xs font-black">تأكيد الحذف</button>
+        {/* ==================================================== */}
+        {/* نافذة منبثقة 1: إضافة معاملة مالية                    */}
+        {/* ==================================================== */}
+        {showAddTxModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
+            <div className="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-3xl p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+              <h2 className="text-sm font-bold text-white mb-4">تسجيل حركة مالية جديدة</h2>
+              <form onSubmit={handleAddTransaction} className="space-y-3">
+                <div className="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-xl border border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setTxType('expense')}
+                    className={`py-2 text-xs font-bold rounded-lg ${txType === 'expense' ? 'bg-rose-600 text-white' : 'text-slate-400'}`}
+                  >
+                    مصروف (-)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTxType('income')}
+                    className={`py-2 text-xs font-bold rounded-lg ${txType === 'income' ? 'bg-emerald-600 text-white' : 'text-slate-400'}`}
+                  >
+                    دخل (+)
+                  </button>
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1">بيان الحركة / الوصف:</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="مثال: فاتورة كهرباء، راتب، تموين"
+                    value={txTitle}
+                    onChange={(e) => setTxTitle(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1">المبلغ (بالدينار الأردني):</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    placeholder="0.00"
+                    value={txAmount}
+                    onChange={(e) => setTxAmount(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none font-bold"
+                  />
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl"
+                  >
+                    حفظ الحركة
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddTxModal(false)}
+                    className="flex-1 py-2.5 bg-slate-800 text-slate-400 text-xs font-bold rounded-xl"
+                  >
+                    إلغاء
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* ==================================================== */}
+        {/* نافذة منبثقة 2: إنشاء محفظة جديدة                    */}
+        {/* ==================================================== */}
+        {showAddWalletModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
+              <h2 className="text-sm font-bold text-white mb-3">إنشاء محفظة عائلية جديدة</h2>
+              <form onSubmit={handleAddWallet} className="space-y-3">
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1">اسم المحفظة:</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="مثال: مصاريف السيارة، التوفير السنوي"
+                    value={newWalletName}
+                    onChange={(e) => setNewWalletName(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                  />
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-xl"
+                  >
+                    إنشاء المحفظة
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddWalletModal(false)}
+                    className="flex-1 py-2.5 bg-slate-800 text-slate-400 text-xs font-bold rounded-xl"
+                  >
+                    إلغاء
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* ==================================================== */}
+        {/* نافذة منبثقة 3: دعوة وإضافة فرد جديد                 */}
+        {/* ==================================================== */}
+        {showInviteModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
+              <h2 className="text-sm font-bold text-white mb-2">إضافة فرد لمحفظة ({currentWallet?.name})</h2>
+              <p className="text-[11px] text-slate-400 mb-4">أدخل اسم الفرد لإضافته ومشاركته إدارة هذه المحفظة فوراً:</p>
+              
+              <form onSubmit={handleAddMember} className="space-y-3">
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1">اسم الشخص:</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="مثال: أم عبد الله، محمد"
+                    value={newMemberName}
+                    onChange={(e) => setNewMemberName(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1">الدور والصلاحية:</label>
+                  <select
+                    value={newMemberRole}
+                    onChange={(e) => setNewMemberRole(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                  >
+                    <option value="member">فرد بالعائلة (إضافة حركات وقائمة تسوق)</option>
+                    <option value="admin">مشرف (صلاحية كاملة وحذف وتعديل)</option>
+                  </select>
+                </div>
+
+                <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-center">
+                  <div className="text-[10px] text-slate-400">رمز الانضمام السريع المشترك:</div>
+                  <div className="text-xs font-mono font-black text-cyan-400 tracking-wider mt-0.5">FAMILY-2026-JORDAN</div>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl"
+                  >
+                    تأكيد الإضافة
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowInviteModal(false)}
+                    className="flex-1 py-2.5 bg-slate-800 text-slate-400 text-xs font-bold rounded-xl"
+                  >
+                    إلغاء
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }
