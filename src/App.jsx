@@ -17,7 +17,6 @@ Edit: () => ,
 CheckSquare: () => ,
 Square: () => 
 };
-
 const CATEGORIES = {
 'ألبان وأجبان': { icon: '🥛', color: 'bg-sky-500/15 text-sky-300 border-sky-500/30' },
 'مواد تموينية وبقالة': { icon: '🥫', color: 'bg-amber-500/15 text-amber-300 border-amber-500/30' },
@@ -28,7 +27,6 @@ const CATEGORIES = {
 'صيدلية وعناية': { icon: '💊', color: 'bg-purple-500/15 text-purple-300 border-purple-500/30' },
 'أخرى ومستلزمات': { icon: '📦', color: 'bg-slate-500/15 text-slate-300 border-slate-500/30' }
 };
-
 export default function FamilyBudgetApp() {
 // ==========================================
 // استرجاع البيانات المحفوظة في الهاتف (Persistent Storage)
@@ -53,15 +51,12 @@ members: [
 }
 ];
 });
-
 const [activeWalletId, setActiveWalletId] = useState(() => {
 return localStorage.getItem('fb_active_wallet') || 'w-main';
 });
-
 const [currentUser, setCurrentUser] = useState(() => {
 return localStorage.getItem('fb_current_user') || 'u1';
 });
-
 const [transactions, setTransactions] = useState(() => {
 const saved = localStorage.getItem('fb_transactions');
 return saved ? JSON.parse(saved) : [
@@ -77,7 +72,6 @@ addedBy: 'أحمد'
 }
 ];
 });
-
 const [shoppingItems, setShoppingItems] = useState(() => {
 const saved = localStorage.getItem('fb_shopping');
 return saved ? JSON.parse(saved) : [
@@ -109,12 +103,10 @@ purchasedBy: null
 }
 ];
 });
-
 // التبويبات الرئيسية وتبويبات التسوق
 const [currentTab, setCurrentTab] = useState('dashboard'); // dashboard | shopping | wallets | reports
 const [shoppingSubTab, setShoppingSubTab] = useState('PENDING'); // PENDING (قبل الشراء) | PURCHASED (بعد الشراء)
-const [toastMessage, setToastMessage] = useState(null);
-
+const [toastMessage, setToastMessage] = useState(null)
 // حالات النوافذ المنبثقة
 const [showAddTxModal, setShowAddTxModal] = useState(false);
 const [showAddWalletModal, setShowAddWalletModal] = useState(false);
@@ -122,51 +114,41 @@ const [showInviteModal, setShowInviteModal] = useState(false);
 const [purchasingItem, setPurchasingItem] = useState(null);
 const [editingPriceItem, setEditingPriceItem] = useState(null);
 const [editPriceInput, setEditPriceInput] = useState('');
-
 // حقول الإدخال
 const [txTitle, setTxTitle] = useState('');
 const [txAmount, setTxAmount] = useState('');
 const [txType, setTxType] = useState('expense');
 const [txCategory, setTxCategory] = useState('مصاريف عامة');
-
 const [newWalletName, setNewWalletName] = useState('');
 const [newMemberName, setNewMemberName] = useState('');
 const [newMemberRole, setNewMemberRole] = useState('member');
-
 // حقول إضافة غرض تسوق
 const [newShopTitle, setNewShopTitle] = useState('');
 const [newShopQty, setNewShopQty] = useState('1');
 const [newShopCat, setNewShopCat] = useState('ألبان وأجبان');
 const [newShopNotes, setNewShopNotes] = useState('');
-
 // ==========================================
 // حفظ تلقائي فوري في ذاكرة الهاتف عند كل تحديث
 // ==========================================
 useEffect(() => {
 localStorage.setItem('fb_wallets', JSON.stringify(wallets));
 }, [wallets]);
-
 useEffect(() => {
 localStorage.setItem('fb_transactions', JSON.stringify(transactions));
 }, [transactions]);
-
 useEffect(() => {
 localStorage.setItem('fb_shopping', JSON.stringify(shoppingItems));
 }, [shoppingItems]);
-
 useEffect(() => {
 localStorage.setItem('fb_active_wallet', activeWalletId);
 }, [activeWalletId]);
-
 useEffect(() => {
 localStorage.setItem('fb_current_user', currentUser);
 }, [currentUser]);
-
 const showToast = (msg, type = 'success') => {
 setToastMessage({ msg, type });
 setTimeout(() => setToastMessage(null), 3500);
 };
-
 // ==========================================
 // الحسابات المالية التلقائية والمطابقة للرصيد (SSOT)
 // ==========================================
@@ -174,34 +156,27 @@ const currentWallet = wallets.find((w) => w.id === activeWalletId) || wallets[0]
 const walletTransactions = useMemo(() => {
 return transactions.filter((t) => t.walletId === activeWalletId);
 }, [transactions, activeWalletId]);
-
 const totalIncome = useMemo(() => {
 return walletTransactions
 .filter((t) => t.type === 'income')
 .reduce((sum, t) => sum + Number(t.amount), 0);
 }, [walletTransactions]);
-
 const totalExpense = useMemo(() => {
 return walletTransactions
 .filter((t) => t.type === 'expense')
 .reduce((sum, t) => sum + Number(t.amount), 0);
 }, [walletTransactions]);
-
 const balance = totalIncome - totalExpense;
-
 // عناصر التسوق الخاصة بالمحفظة النشطة
 const pendingShopping = useMemo(() => {
 return shoppingItems.filter((s) => s.walletId === activeWalletId && s.status === 'PENDING');
 }, [shoppingItems, activeWalletId]);
-
 const purchasedShopping = useMemo(() => {
 return shoppingItems.filter((s) => s.walletId === activeWalletId && s.status === 'PURCHASED');
 }, [shoppingItems, activeWalletId]);
-
 const totalPurchasedSum = useMemo(() => {
 return purchasedShopping.reduce((sum, i) => sum + (Number(i.actualPrice) || 0), 0);
 }, [purchasedShopping]);
-
 // ==========================================
 // دوال العمليات المالية
 // ==========================================
@@ -212,7 +187,6 @@ if (!txTitle || isNaN(parsedAmount) || parsedAmount <= 0) {
 showToast('يرجى كتابة بيان ومبلغ صحيح بالدينار', 'error');
 return;
 }
-
 const currentUserName = currentWallet?.members.find((m) => m.id === currentUser)?.name || 'أحد الأفراد';
 const newTx = {
   id: 'tx-' + Date.now(),
@@ -224,16 +198,12 @@ const newTx = {
   date: new Date().toISOString().split('T')[0],
   addedBy: currentUserName
 };
-
 setTransactions([newTx, ...transactions]);
 setTxTitle('');
 setTxAmount('');
 setShowAddTxModal(false);
 showToast(`تم تسجيل ${txType === 'income' ? 'إيداع' : 'مصروف'} بقيمة ${parsedAmount.toFixed(2)} د.أ`);
-
-
 };
-
 const handleDeleteTx = (id) => {
 const tx = transactions.find((t) => t.id === id);
 if (window.confirm('هل تريد حذف هذه الحركة بالتأكيد؟')) {
@@ -251,7 +221,6 @@ item.transactionId === id
 showToast('تم حذف الحركة وتحديث الرصيد');
 }
 };
-
 // ==========================================
 // دوال قائمة التسوق الذكية (الجوهرية)
 // ==========================================
@@ -260,7 +229,6 @@ showToast('تم حذف الحركة وتحديث الرصيد');
 const handleAddShoppingItem = (e) => {
 e.preventDefault();
 if (!newShopTitle.trim()) return;
-
 const currentUserName = currentWallet?.members.find((m) => m.id === currentUser)?.name || 'الزوجة';
 const newItem = {
   id: 'shop-' + Date.now(),
@@ -275,30 +243,23 @@ const newItem = {
   addedBy: currentUserName,
   purchasedBy: null
 };
-
 setShoppingItems([newItem, ...shoppingItems]);
 setNewShopTitle('');
 setNewShopQty('1');
 setNewShopNotes('');
 showToast(`تمت إضافة "${newItem.title}" لتبويب المنتجات قبل الشراء`);
-
-
 };
-
 // 2. تأكيد الشراء وإدخال السعر وخصم المبلغ تلقائياً
 const handleConfirmPurchase = (e) => {
 e.preventDefault();
 if (!purchasingItem) return;
-
 const price = parseFloat(purchasingItem.tempPrice);
 if (isNaN(price) || price <= 0) {
   showToast('يرجى إدخال السعر الفعلي المدفوع بشكل صحيح', 'error');
   return;
 }
-
 const currentUserName = currentWallet?.members.find((m) => m.id === currentUser)?.name || 'المشتري';
 const newTxId = 'tx-shop-' + Date.now();
-
 // أ) تسجيل حركة المصروف وخصمها من الرصيد
 const newTx = {
   id: newTxId,
@@ -310,7 +271,6 @@ const newTx = {
   date: new Date().toISOString().split('T')[0],
   addedBy: currentUserName
 };
-
 // ب) تحديث حالة الغرض ونقله لتبويب "تم الشراء"
 setShoppingItems((prev) =>
   prev.map((item) =>
@@ -325,18 +285,13 @@ setShoppingItems((prev) =>
       : item
   )
 );
-
 setTransactions((prev) => [newTx, ...prev]);
 setPurchasingItem(null);
 showToast(`تم الشراء ونقله لتبويب "تم الشراء" وخصم ${price.toFixed(2)} د.أ من الرصيد`);
-
-
 };
-
 // 3. إلغاء الشراء واسترداد المبلغ كاملاً للمحفظة (Revert Purchase)
 const handleUncheckPurchasedItem = (item) => {
 const refundAmount = Number(item.actualPrice) || 0;
-
 // أ) إعادة الغرض لتبويب "قبل الشراء"
 setShoppingItems((prev) =>
   prev.map((i) =>
@@ -351,7 +306,6 @@ setShoppingItems((prev) =>
       : i
   )
 );
-
 // ب) حذف حركة المصروف واسترجاع المبلغ للرصيد المتاح فوراً
 if (item.transactionId) {
   setTransactions((prev) => prev.filter((t) => t.id !== item.transactionId));
@@ -365,33 +319,25 @@ if (item.transactionId) {
     return prev;
   });
 }
-
 showToast(`تمت إعادة "${item.title}" لتبويب قبل الشراء واسترداد ${refundAmount.toFixed(2)} د.أ للرصيد المتاح`);
-
-
 };
-
 // 4. تعديل سعر غرض تم شراؤه وتسوية فرق الحساب تلقائياً
 const handleUpdatePurchasedPrice = (e) => {
 e.preventDefault();
 if (!editingPriceItem) return;
-
 const newPrice = parseFloat(editPriceInput);
 if (isNaN(newPrice) || newPrice <= 0) {
   showToast('يرجى إدخال سعر صحيح بالدينار', 'error');
   return;
 }
-
 const oldPrice = Number(editingPriceItem.actualPrice) || 0;
 const difference = newPrice - oldPrice;
-
 // أ) تعديل السعر في عنصر التسوق
 setShoppingItems((prev) =>
   prev.map((i) =>
     i.id === editingPriceItem.id ? { ...i, actualPrice: newPrice } : i
   )
 );
-
 // ب) تعديل المبلغ في جدول الحركات المالية لتسوية الرصيد تلقائياً
 if (editingPriceItem.transactionId) {
   setTransactions((prev) =>
@@ -406,10 +352,8 @@ if (editingPriceItem.transactionId) {
     )
   );
 }
-
 setEditingPriceItem(null);
 setEditPriceInput('');
-
 if (difference > 0) {
   showToast(`تم تعديل السعر وخصم فرق إضافي (${difference.toFixed(2)} د.أ) من الرصيد`);
 } else if (difference < 0) {
@@ -417,10 +361,7 @@ if (difference > 0) {
 } else {
   showToast('لم يطرأ أي تغيير على السعر');
 }
-
-
 };
-
 // 5. حذف غرض من قائمة التسوق نهائياً (مع استرداد المبلغ إذا كان مشترياً)
 const handleDeleteShoppingItem = (item) => {
 if (window.confirm(هل أنت متأكد من حذف "${item.title}" نهائياً؟)) {
@@ -433,14 +374,12 @@ showToast('تم حذف الغرض من القائمة');
 }
 }
 };
-
 // ==========================================
 // دوال المحافظ والأعضاء
 // ==========================================
 const handleAddWallet = (e) => {
 e.preventDefault();
 if (!newWalletName.trim()) return;
-
 const newId = 'w-' + Date.now();
 const createdWallet = {
   id: newId,
@@ -450,16 +389,12 @@ const createdWallet = {
     { id: 'u2', name: 'فاطمة', role: 'member', title: 'عضو' }
   ]
 };
-
 setWallets([...wallets, createdWallet]);
 setActiveWalletId(newId);
 setNewWalletName('');
 setShowAddWalletModal(false);
 showToast(`تم إنشاء محفظة "${createdWallet.name}" بنجاح`);
-
-
 };
-
 const handleDeleteWallet = (walletId) => {
 if (wallets.length <= 1) {
 alert('يجب أن تبقى محفظة واحدة نشطة على الأقل في التطبيق.');
@@ -475,29 +410,22 @@ setActiveWalletId(remaining[0].id);
 showToast(تم حذف محفظة "${target?.name}");
 }
 };
-
 const handleAddMember = (e) => {
 e.preventDefault();
 if (!newMemberName.trim()) return;
-
 const newMem = {
   id: 'u-' + Date.now(),
   name: newMemberName.trim(),
   role: newMemberRole,
   title: newMemberRole === 'admin' ? 'مشرف مشترك' : 'فرد في العائلة'
 };
-
 setWallets((prev) =>
   prev.map((w) => (w.id === activeWalletId ? { ...w, members: [...w.members, newMem] } : w))
 );
-
 setNewMemberName('');
 setShowInviteModal(false);
 showToast(`تمت إضافة ${newMem.name} إلى محفظة "${currentWallet?.name}"`);
-
-
 };
-
 const handleDeleteMember = (memberId) => {
 if (currentWallet.members.length <= 1) {
 alert('لا يمكن حذف العضو الوحيد المتبقي في المحفظة.');
@@ -519,9 +447,6 @@ showToast(تمت إزالة ${mem?.name} من المحفظة);
 };
 
 return (
-
-
-
     {/* إشعار عائم منبثق (Toast) */}
     {toastMessage && (
       <div className={`fixed top-4 left-4 right-4 z-50 p-3.5 rounded-2xl shadow-2xl text-xs font-bold flex items-center justify-between border animate-in slide-in-from-top ${
@@ -531,7 +456,6 @@ return (
         <button onClick={() => setToastMessage(null)} className="text-sm font-bold opacity-75">✕</button>
       </div>
     )}
-
     {/* ترويسة التطبيق */}
     <header className="text-center mb-5">
       <div className="inline-flex items-center justify-center p-3 bg-gradient-to-tr from-teal-500 to-emerald-400 rounded-2xl shadow-lg shadow-teal-500/20 mb-2">
@@ -540,7 +464,6 @@ return (
       <h1 className="text-2xl font-black tracking-tight text-white">ميزانية العائلة</h1>
       <p className="text-xs text-slate-400 font-medium mt-1">دينار أردني (JOD) • متزامن ومحفوظ تلقائياً</p>
     </header>
-
     {/* محدد المحفظة والحساب النشط */}
     <div className="grid grid-cols-2 gap-2 mb-4 bg-slate-900/90 p-2.5 rounded-2xl border border-slate-800 shadow-md">
       <div>
@@ -570,7 +493,6 @@ return (
         </select>
       </div>
     </div>
-
     {/* شريط التبويبات الأربعة الرئيسية */}
     <nav className="grid grid-cols-4 gap-1 bg-slate-900 p-1.5 rounded-2xl border border-slate-800 mb-6 shadow-md text-center">
       <button
@@ -615,7 +537,6 @@ return (
         <span>التقارير</span>
       </button>
     </nav>
-
     {/* ==================================================== */}
     {/* التبويب الأول: لوحة التحكم والرصيد الفعلي             */}
     {/* ==================================================== */}
@@ -626,7 +547,6 @@ return (
           <div className={`text-4xl font-black tracking-tight mb-4 font-mono ${balance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
             {balance.toFixed(2)} <span className="text-lg font-sans text-slate-300">د.أ</span>
           </div>
-
           <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-800/80">
             <div className="bg-slate-950/60 p-2.5 rounded-2xl border border-slate-800/60">
               <div className="text-[10px] text-slate-400 mb-0.5 font-bold">إجمالي المدخولات</div>
@@ -638,14 +558,12 @@ return (
             </div>
           </div>
         </div>
-
         <button
           onClick={() => setShowAddTxModal(true)}
           className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2 active:scale-95 transition-all"
         >
           <Icons.Plus /> إضافة حركة مالية يدوية
         </button>
-
         <div className="space-y-2.5">
           <h3 className="text-xs font-bold text-slate-400 pr-1">سجل العمليات في {currentWallet?.name}:</h3>
           {walletTransactions.length === 0 ? (
@@ -679,7 +597,6 @@ return (
         </div>
       </div>
     )}
-
     {/* ==================================================== */}
     {/* التبويب الثاني: قائمة تسوق المنزل التشاركية الذكية     */}
     {/* ==================================================== */}
@@ -750,7 +667,6 @@ return (
               {pendingShopping.length}
             </span>
           </button>
-
           <button
             onClick={() => setShoppingSubTab('PURCHASED')}
             className={`p-3 rounded-2xl border text-right transition-all flex items-center justify-between ${
